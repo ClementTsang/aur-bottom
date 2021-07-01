@@ -1,0 +1,46 @@
+name: Update
+
+on: 
+  repository_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux/archlinux:latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Get PKGBUILD info from repo
+        run: |
+          curl -LO https://github.com/ClementTsang/bottom/releases/download/${{ github.event.client_payload.version }}/arch_PKGBUILD.tar.gz
+          tar xzvf arch_PKGBUILD.tar.gz
+          mv PKGBUILD ./bottom
+          rm arch_PKGBUILD.tar.gz
+      
+      - name: Get binary PKGBUILD info from repo
+        run: |
+          curl -LO https://github.com/ClementTsang/bottom/releases/download/${{ github.event.client_payload.version }}/arch_PKGBUILD_bin.tar.gz
+          tar xzvf arch_PKGBUILD_bin.tar.gz
+          mv PKGBUILD ./bottom-bin
+          rm arch_PKGBUILD_bin.tar.gz
+
+      - name: Update container
+        run: |
+          pacman -Syu --noconfirm
+
+      - name: Make .SRCINFO for PKGBUILDs
+        run: |
+          cd bottom
+          makepkg --printsrcinfo > .SRCINFO
+          cd ../bottom-bin
+          makepkg --printsrcinfo > .SRCINFO
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v3.5.0
+        with:
+          commit-message: "Actions: Update AUR PKGBUILD files to ${{ github.event.client_payload.version }}"
+          title: "Automatic AUR PKGBUILD update to ${{ github.event.client_payload.version }}"
+          body: "This is an automatic update for the AUR PKGBUILD files in response to a bottom release, version ${{ github.event.client_payload.version }}."
+          branch: update_branch
+          delete-branch: true

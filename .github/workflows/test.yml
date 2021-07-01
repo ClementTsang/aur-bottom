@@ -1,0 +1,78 @@
+name: Test
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # See https://github.community/t/testing-against-multiple-architectures/17111 
+        # and https://docs.github.com/en/github-ae@latest/actions/using-github-hosted-runners/adding-ae-hosted-runners 
+        # regarding ARM
+        image: [
+          "archlinux/archlinux:latest",
+          # "lopsided/archlinux-arm64v8:latest",
+          # "lopsided/archlinux-arm32v7:latest"
+        ]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Update system
+        run: |
+          pacman -Syu --noconfirm --needed
+          pacman -S base-devel --noconfirm --needed
+          pacman -S sudo --noconfirm --needed
+          pacman -S rustup --noconfirm --needed
+
+      - name: Create a dummy user for makepkg to use, since it cannot be root
+        run: |
+          useradd aur_test -m
+          passwd -d aur_test
+          printf 'aur_test ALL=(ALL) ALL\n' | tee -a /etc/sudoers
+
+      - name: Update rustup
+        run: |
+          sudo -u aur_test rustup install stable
+          sudo -u aur_test rustup default stable
+      
+      - name: Build btm-bin
+        run: |
+          cp -r bottom-bin btm-bin-test
+          chown aur_test -R btm-bin-test
+          cd btm-bin-test
+          sudo -u aur_test makepkg -si --noconfirm
+          cd ..
+          rm -rf btm-bin-test
+
+      - name: Validate btm-bin
+        run: |
+          btm -V
+
+      - name: Uninstall btm-bin
+        run: |
+          pacman -Rsn bottom-bin --noconfirm
+
+      - name: Build btm
+        run: |
+          cp -r bottom btm-test
+          chown aur_test -R btm-test
+          cd btm-test
+          sudo -u aur_test makepkg -si --noconfirm
+          cd ..
+          rm -rf btm-test
+
+      - name: Validate btm
+        run: |
+          btm -V
+
+      - name: Uninstall btm
+        run: |
+          pacman -Rsn bottom --noconfirm
