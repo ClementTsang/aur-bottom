@@ -46,6 +46,7 @@ jobs:
           sudo -u aur_test makepkg --printsrcinfo > .SRCINFO
           cd ../bottom-bin
           sudo -u aur_test makepkg --printsrcinfo > .SRCINFO
+          cd ../
 
       - name: Create PR
         uses: peter-evans/create-pull-request@v3.5.0
