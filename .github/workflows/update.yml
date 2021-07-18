@@ -9,6 +9,13 @@ jobs:
     container:
       image: archlinux/archlinux:latest
     steps:
+      - name: Update container
+        run: |
+          pacman -Syu --noconfirm --needed
+          pacman -S base-devel --noconfirm --needed
+          pacman -S sudo --noconfirm --needed
+          pacman -S git --noconfirm --needed
+
       - uses: actions/checkout@v2
         with:
             fetch-depth: 0
@@ -27,13 +34,6 @@ jobs:
           mv PKGBUILD ./bottom-bin
           rm arch_PKGBUILD_bin.tar.gz
 
-      - name: Update container
-        run: |
-          pacman -Syu --noconfirm --needed
-          pacman -S base-devel --noconfirm --needed
-          pacman -S sudo --noconfirm --needed
-          pacman -S git --noconfirm --needed
-
       - name: Create a dummy user for makepkg to use, since it cannot be root
         run: |
           useradd aur_test -m
@@ -49,8 +49,6 @@ jobs:
           cd ../bottom-bin
           sudo -u aur_test makepkg --printsrcinfo > .SRCINFO
           cd ../
-          pwd
-          ls -ah
 
       - name: Create PR
         uses: peter-evans/create-pull-request@v3.5.0
