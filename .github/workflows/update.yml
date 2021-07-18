@@ -10,6 +10,8 @@ jobs:
       image: archlinux/archlinux:latest
     steps:
       - uses: actions/checkout@v2
+        with:
+            fetch-depth: 0
 
       - name: Get PKGBUILD info from repo
         run: |
