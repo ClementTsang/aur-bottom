@@ -1,6 +1,6 @@
 name: Update
 
-on: 
+on:
   repository_dispatch:
 
 jobs:
@@ -27,14 +27,24 @@ jobs:
 
       - name: Update container
         run: |
-          pacman -Syu --noconfirm
+          pacman -Syu --noconfirm --needed
+          pacman -S base-devel --noconfirm --needed
+          pacman -S sudo --noconfirm --needed
+
+      - name: Create a dummy user for makepkg to use, since it cannot be root
+        run: |
+          useradd aur_test -m
+          passwd -d aur_test
+          printf 'aur_test ALL=(ALL) ALL\n' | tee -a /etc/sudoers
 
       - name: Make .SRCINFO for PKGBUILDs
         run: |
+          chown aur_test -R bottom
+          chown aur_test -R bottom-bin
           cd bottom
-          makepkg --printsrcinfo > .SRCINFO
+          sudo -u aur_test makepkg --printsrcinfo > .SRCINFO
           cd ../bottom-bin
-          makepkg --printsrcinfo > .SRCINFO
+          sudo -u aur_test makepkg --printsrcinfo > .SRCINFO
 
       - name: Create PR
         uses: peter-evans/create-pull-request@v3.5.0
